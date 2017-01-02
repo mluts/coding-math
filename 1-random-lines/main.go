@@ -31,14 +31,16 @@ var (
 
 func processInput(state *State, event sdl.Event) {
 	switch t := event.(type) {
-	case sdl.QuitEvent:
+	case *sdl.QuitEvent:
 		state.running = false
-	case sdl.KeyDownEvent:
+	case *sdl.KeyDownEvent:
 		switch t.Keysym.Sym {
+		case sdl.K_ESCAPE:
+			state.running = false
 		case sdl.K_UP:
-			state.speedMs += 30
+			state.speedMs += 100
 		case sdl.K_DOWN:
-			state.speedMs -= 30
+			state.speedMs -= 100
 			if state.speedMs < 0 {
 				state.speedMs = 0
 			}
@@ -84,7 +86,7 @@ func main() {
 		err      error
 		state    State
 	)
-	sdl.Init(sdl.INIT_EVERYTHING)
+	sdl.Init(sdl.INIT_VIDEO)
 
 	window, err = sdl.CreateWindow(
 		winTitle, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
@@ -104,7 +106,7 @@ func main() {
 
 	state = State{
 		running:      true,
-		speedMs:      100,
+		speedMs:      1000,
 		lastUpdateMs: 0,
 		lastTick:     0}
 
