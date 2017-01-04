@@ -1,6 +1,7 @@
 package main
 
 import (
+	// "fmt"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/sdl_gfx"
 	"math"
@@ -15,12 +16,73 @@ func init() {
 }
 
 type State struct {
-	running                        bool
-	lastUpdateMs                   uint32
-	speedMs                        int
-	lastTick                       uint32
+	running      bool
+	lastUpdateMs uint32
+	speedMs      int
+	lastTick     uint32
+	flying       []FlyingObject
+}
+
+type Circle struct {
+	c      sdl.Point
+	radius int
+	color  sdl.Color
+	filled bool
+}
+
+type Drawable interface {
+	getCenter() sdl.Point
+	setCenter(sdl.Point) Drawable
+	draw(*sdl.Renderer)
+}
+
+type FlyingObject struct {
+	obj                            Drawable
 	xangle, yangle, xspeed, yspeed float64
-	points                         []sdl.Point
+}
+
+func newFlyingObject(d Drawable, xa, ya, xs, ys float64) FlyingObject {
+	return FlyingObject{d, xa, ya, xs, ys}
+}
+
+func (f FlyingObject) draw(r *sdl.Renderer) {
+	c := f.obj.getCenter()
+
+	o := f.obj.setCenter(sdl.Point{
+		c.X + int32(math.Cos(f.xangle)*float64(200)),
+		c.Y + int32(math.Sin(f.yangle)*float64(150))})
+
+	o.draw(r)
+}
+
+func (f *FlyingObject) fly() {
+	f.xangle += f.xspeed
+	f.yangle += f.yspeed
+}
+
+func newCircle(center sdl.Point, radius int, color sdl.Color, filled bool) Circle {
+	return Circle{center, radius, color, filled}
+}
+
+func (c Circle) draw(r *sdl.Renderer) {
+	if c.filled {
+		gfx.FilledCircleColor(r, int(c.c.X), int(c.c.Y), c.radius, c.color)
+	} else {
+		gfx.CircleColor(r, int(c.c.X), int(c.c.Y), c.radius, c.color)
+	}
+}
+
+func (c Circle) move(p sdl.Point) Circle {
+	return Circle{
+		p, c.radius, c.color, c.filled}
+}
+
+func (c Circle) getCenter() sdl.Point {
+	return c.c
+}
+
+func (c Circle) setCenter(p sdl.Point) Drawable {
+	return c.move(p)
 }
 
 var (
@@ -36,34 +98,15 @@ func processInput(state *State, event sdl.Event) {
 		switch t.Keysym.Sym {
 		case sdl.K_ESCAPE:
 			state.running = false
-		case sdl.K_PLUS:
-			state.speedMs += 100
-		case sdl.K_MINUS:
-			state.speedMs -= 100
-			if state.speedMs < 0 {
-				state.speedMs = 0
-			}
 		}
 	}
 }
 
-func ensureFrameRate(state *State) {
-	currentTick := sdl.GetTicks()
-	sleepMs := int(1000/frameRate - int(currentTick-state.lastTick))
-	if sleepMs > 0 {
-		sdl.Delay(uint32(sleepMs))
-	}
-	state.lastTick = currentTick
-}
-
 func updateState(state *State) {
-	state.yangle += state.yspeed
-	state.xangle += state.xspeed
-
-	x := winWidth/2 + int(math.Cos(state.xangle)*300)
-	y := winHeight/2 + int(math.Sin(state.yangle)*200)
-	point := sdl.Point{int32(x), int32(y)}
-	state.points = append(state.points, point)
+	for i, o := range state.flying {
+		o.fly()
+		state.flying[i] = o
+	}
 }
 
 func draw(state *State, renderer *sdl.Renderer) {
@@ -71,10 +114,9 @@ func draw(state *State, renderer *sdl.Renderer) {
 	renderer.Clear()
 
 	renderer.SetDrawColor(0, 0, 0, sdl.ALPHA_OPAQUE)
-	renderer.DrawLines(state.points)
-	// gfx.FilledCircleRGBA(
-	// 	renderer, state.circleX, state.circleY+int(math.Sin(state.angle)*float64(winHeight*2/5)),
-	// 	state.circleR, 0, 0, 0, sdl.ALPHA_OPAQUE)
+	for _, o := range state.flying {
+		o.draw(renderer)
+	}
 }
 
 func main() {
@@ -110,9 +152,21 @@ func main() {
 		running:      true,
 		speedMs:      0,
 		lastUpdateMs: 0,
-		xspeed:       0.01,
-		yspeed:       0.004,
-		xangle:       0, yangle: 30}
+		flying:       make([]FlyingObject, 0)}
+
+	for i := 0; i < 30; i++ {
+		color := sdl.Color{0, 0, 0, sdl.ALPHA_OPAQUE}
+		c := newCircle(
+			sdl.Point{
+				int32(winWidth/2 + rand.Intn(100)),
+				int32(winHeight/2 + rand.Intn(100))},
+			5,
+			color,
+			true)
+		state.flying = append(state.flying, newFlyingObject(
+			c, float64(rand.Intn(50)), float64(rand.Intn(50)),
+			0.01+rand.Float64()*0.1, 0.01+rand.Float64()*0.1))
+	}
 
 	for state.running {
 		gfx.FramerateDelay(&frameRate)
