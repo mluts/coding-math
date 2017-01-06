@@ -150,22 +150,23 @@ func main() {
 
 	state = State{
 		running:      true,
-		speedMs:      0,
+		speedMs:      100,
 		lastUpdateMs: 0,
 		flying:       make([]FlyingObject, 0)}
 
-	for i := 0; i < 30; i++ {
+	for i := 0; i < 1000; i++ {
 		color := sdl.Color{0, 0, 0, sdl.ALPHA_OPAQUE}
+		throw := int((float64(winWidth) * 0.7) / 2)
 		c := newCircle(
 			sdl.Point{
-				int32(winWidth/2 + rand.Intn(100)),
-				int32(winHeight/2 + rand.Intn(100))},
-			5,
+				int32(winWidth/2 + rand.Intn(throw) - throw/2),
+				int32(winHeight/2 + rand.Intn(throw) - throw/2)},
+			int(1+rand.Float64()*5),
 			color,
 			true)
 		state.flying = append(state.flying, newFlyingObject(
-			c, float64(rand.Intn(50)), float64(rand.Intn(50)),
-			0.01+rand.Float64()*0.1, 0.01+rand.Float64()*0.1))
+			c, float64(rand.Intn(50)-25), float64(rand.Intn(50)-25),
+			0.01+rand.Float64()*0.05, 0.01+rand.Float64()*0.05))
 	}
 
 	for state.running {
