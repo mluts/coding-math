@@ -1,12 +1,11 @@
 package main
 
 import (
-	// "fmt"
-	// "../sdl"
 	"../sdl/arrow"
+	"../sdl/point"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/sdl_gfx"
-	// "math"
+	"math"
 	"math/rand"
 	"runtime"
 	"time"
@@ -18,11 +17,11 @@ func init() {
 }
 
 type State struct {
-	running      bool
-	lastUpdateMs uint32
-	speedMs      int
-	lastTick     uint32
-	angle        float64
+	running        bool
+	lastUpdateMs   uint32
+	speedMs        int
+	lastTick       uint32
+	mouseX, mouseY int32
 }
 
 var (
@@ -39,11 +38,16 @@ func processInput(state *State, event sdl.Event) {
 		case sdl.K_ESCAPE:
 			state.running = false
 		}
+	case *sdl.MouseMotionEvent:
+		state.mouseX = t.X
+		state.mouseY = t.Y
 	}
 }
 
 func updateState(state *State) {
-	state.angle += 0.06
+	x, y, _ := sdl.GetMouseState()
+	state.mouseX = int32(x)
+	state.mouseY = int32(y)
 }
 
 func draw(state *State, renderer *sdl.Renderer) {
@@ -52,8 +56,14 @@ func draw(state *State, renderer *sdl.Renderer) {
 
 	renderer.SetDrawColor(0, 0, 0, sdl.ALPHA_OPAQUE)
 
-	a := arrow.NewArrow(sdl.Point{100, 100}, sdl.Point{200, 200}, 100)
-	a = a.Rotate(a.Lines()[0].Center(), state.angle)
+	p := sdl.Point{int32(winWidth / 2), int32(winHeight / 2)}
+	m := sdl.Point{state.mouseX, state.mouseY}
+	p = point.Translate(p, -m.X, -m.Y)
+	angle := math.Atan2(float64(p.Y), float64(p.X)) + math.Pi
+	p = point.Translate(p, m.X, m.Y)
+
+	a := arrow.NewArrow(sdl.Point{p.X - 50, p.Y}, sdl.Point{p.X + 50, p.Y}, 50)
+	a = a.Rotate(p, angle)
 	for _, l := range a.Lines() {
 		renderer.DrawLines([]sdl.Point{l.From, l.To})
 	}
@@ -92,7 +102,8 @@ func main() {
 		running:      true,
 		speedMs:      0,
 		lastUpdateMs: 0,
-		angle:        0}
+		mouseX:       0,
+		mouseY:       0}
 
 	for state.running {
 		gfx.FramerateDelay(&frameRate)
