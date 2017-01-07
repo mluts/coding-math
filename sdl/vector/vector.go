@@ -1,0 +1,48 @@
+package vec
+
+import (
+	"math"
+)
+
+type Vec2 struct {
+	X, Y float64
+}
+
+func NewVec2(X, Y float64) Vec2 {
+	return Vec2{X, Y}
+}
+
+func (v *Vec2) AddVec(b Vec2) {
+	v.X += b.X
+	v.Y += b.Y
+}
+
+func (v *Vec2) Len() float64 {
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
+}
+
+func (v *Vec2) SetLen(len float64) {
+	angle := v.Angle()
+	v.X = math.Cos(angle) * len
+	v.Y = math.Sin(angle) * len
+}
+
+func (v *Vec2) Angle() float64 {
+	return math.Atan2(v.Y, v.X)
+}
+
+func (v *Vec2) SetAngle(angle float64) {
+	len := v.Len()
+	v.X = math.Cos(angle) * len
+	v.Y = math.Sin(angle) * len
+}
+
+func (v *Vec2) Mul(n float64) {
+	v.X *= n
+	v.Y *= n
+}
+
+func (v *Vec2) Div(n float64) {
+	v.X /= n
+	v.Y /= n
+}
