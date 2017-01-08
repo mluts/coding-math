@@ -2,6 +2,7 @@ package main
 
 import (
 	"../sdl/particle"
+	// "fmt"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/sdl_gfx"
 	"math"
@@ -24,7 +25,7 @@ type State struct {
 
 var (
 	winTitle                       string = "Testing SDL"
-	winWidth, winHeight, frameRate int    = 800, 600, 50
+	winWidth, winHeight, frameRate int    = 1024, 700, 50
 )
 
 func processInput(state *State, event sdl.Event) {
@@ -40,9 +41,13 @@ func processInput(state *State, event sdl.Event) {
 }
 
 func updateState(state *State) {
+	currentTick := sdl.GetTicks()
+	dt := float64(currentTick - state.lastUpdateMs)
+
 	for i := range state.particles {
-		state.particles[i].Update(1)
+		state.particles[i].Update(dt / 1000)
 	}
+	// fmt.Printf("p0 vel %f\n", state.particles[0].Velocity.Len())
 }
 
 func draw(state *State, renderer *sdl.Renderer) {
@@ -92,17 +97,17 @@ func main() {
 
 	state = State{
 		running:      true,
-		speedMs:      10,
+		speedMs:      0,
 		lastUpdateMs: 0}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100; i++ {
 		state.particles = append(
 			state.particles,
 			part.NewParticle(
-				float64(winWidth/2),
-				float64(winHeight/2),
-				0.5+rand.Float64()*5,
-				rand.Float64()*math.Pi*2, 0, 0))
+				float64(winWidth/2)+float64(rand.Intn(50)-25),
+				float64(winHeight*3/10)+float64(rand.Intn(50)-25),
+				rand.Float64()*260, rand.Float64()*math.Pi*2,
+				140, math.Pi/2))
 	}
 
 	for state.running {
