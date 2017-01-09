@@ -46,3 +46,16 @@ func (v *Vec2) Div(n float64) {
 	v.X /= n
 	v.Y /= n
 }
+
+func (v *Vec2) Translate(x, y float64) {
+	v.X += x
+	v.Y += y
+}
+
+func (v *Vec2) RotateAround(around Vec2, angle float64) {
+	v.Translate(-around.X, -around.Y)
+	x, y := v.X, v.Y
+	v.X = x*math.Cos(angle) - y*math.Sin(angle)
+	v.Y = x*math.Sin(angle) + y*math.Cos(angle)
+	v.Translate(around.X, around.Y)
+}
