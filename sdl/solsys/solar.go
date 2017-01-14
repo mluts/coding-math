@@ -55,7 +55,7 @@ func (o *Object) GravityTo(to *Object) vec.Vec2 {
 	acc := vec.NewVec2(0, 0)
 	d := o.Particle.Position.DistanceTo(to.Particle.Position)
 	acc.SetLen(to.M / (d * d))
-	acc.SetAngle(o.Particle.Position.AngleTo(to.Particle.Position))
+	acc.SetAngle(math.Pi + o.Particle.Position.AngleTo(to.Particle.Position))
 	return acc
 }
 

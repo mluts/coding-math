@@ -1,11 +1,13 @@
 package main
 
 import (
+	"../sdl/arrow"
 	"../sdl/solsys"
+	"../util"
+	// "fmt"
 	"github.com/veandco/go-sdl2/sdl"
 	"github.com/veandco/go-sdl2/sdl_gfx"
 	// "math"
-	"../sdl/arrow"
 	"math/rand"
 	"runtime"
 	"time"
@@ -19,14 +21,27 @@ func init() {
 type State struct {
 	running      bool
 	lastUpdateMs uint32
-	speedMs      int
 	solarSystem  solsys.System
 }
 
 var (
 	winTitle                       string = "Testing SDL"
 	winWidth, winHeight, frameRate int    = 1024, 700, 50
+	state                          State
 )
+
+func initState() {
+	state = State{
+		running:      true,
+		lastUpdateMs: 0,
+		solarSystem: solsys.New(
+			float64(winWidth)/2, float64(winHeight)/2,
+			30, 20000)}
+
+	for i := 0; i < 20; i++ {
+		state.solarSystem.SpawnPlanet(120+float64(i)*rand.Float64()*10, 10, 1, 5+rand.Float64()*10)
+	}
+}
 
 func processInput(state *State, event sdl.Event) {
 	switch t := event.(type) {
@@ -46,7 +61,12 @@ func updateState(state *State) {
 		dt          float64 = float64(currentTick-state.lastUpdateMs) / 1000
 	)
 
-	state.solarSystem.Update(dt)
+	for i := 0; i < 30; i++ {
+		n := 100
+		for i := 0; i < n; i++ {
+			state.solarSystem.Update(dt / float64(n))
+		}
+	}
 }
 
 func draw(state *State, renderer *sdl.Renderer) {
@@ -58,26 +78,39 @@ func draw(state *State, renderer *sdl.Renderer) {
 
 	for i := range state.solarSystem.Planets {
 		planet := state.solarSystem.Planets[i]
-		state.solarSystem.Planets[i].Draw(renderer, 0, 255, 0, sdl.ALPHA_OPAQUE)
+		state.solarSystem.Planets[i].Draw(renderer, 0+uint8(i)*28, 255-uint8(i)*28, 0, sdl.ALPHA_OPAQUE)
 
 		pos := planet.Particle.Position
+
 		vel := planet.Particle.Velocity
 		vel.AddVec(pos)
 
-		acc := planet.GravityTo(&state.solarSystem.Sun)
+		acc := planet.Particle.Acceleration
+		// fmt.Printf("Len %f Acc %f\n", acc.Len(), (acc.Angle()+math.Pi)*360/(math.Pi*2))
+		// acc.Mul(4)
 		acc.AddVec(pos)
 
 		renderer.SetDrawColor(0, 0, 0, sdl.ALPHA_OPAQUE)
 
 		arrow.NewArrow(
-			sdl.Point{int32(pos.X), int32(pos.Y)},
-			sdl.Point{int32(vel.X), int32(vel.Y)}, 15).Draw(renderer)
+			sdl.Point{
+				int32(util.Clampf(pos.X, 0, float64(winWidth))),
+				int32(util.Clampf(pos.Y, 0, float64(winHeight)))},
+			sdl.Point{
+				int32(util.Clampf(vel.X, 0, float64(winWidth))),
+				int32(util.Clampf(vel.Y, 0, float64(winHeight)))},
+			10).Draw(renderer)
 
-		renderer.SetDrawColor(255, 0, 0, sdl.ALPHA_OPAQUE)
-
-		arrow.NewArrow(
-			sdl.Point{int32(pos.X), int32(pos.Y)},
-			sdl.Point{int32(acc.X), int32(acc.Y)}, 15).Draw(renderer)
+		// renderer.SetDrawColor(255, 0, 0, sdl.ALPHA_OPAQUE)
+		//
+		// arrow.NewArrow(
+		// 	sdl.Point{
+		// 		int32(util.Clampf(pos.X, 0, float64(winWidth))),
+		// 		int32(util.Clampf(pos.Y, 0, float64(winHeight)))},
+		// 	sdl.Point{
+		// 		int32(util.Clampf(acc.X, 0, float64(winWidth))),
+		// 		int32(util.Clampf(acc.Y, 0, float64(winHeight)))},
+		// 	10).Draw(renderer)
 	}
 }
 
@@ -86,7 +119,6 @@ func main() {
 		window   *sdl.Window
 		renderer *sdl.Renderer
 		err      error
-		state    State
 	)
 	sdl.Init(sdl.INIT_VIDEO)
 
@@ -108,27 +140,17 @@ func main() {
 
 	frameRate := gfx.FPSmanager{}
 	gfx.InitFramerate(&frameRate)
-	gfx.SetFramerate(&frameRate, 50)
+	gfx.SetFramerate(&frameRate, 100)
 
-	state = State{
-		running:      true,
-		speedMs:      0,
-		lastUpdateMs: 0,
-		solarSystem: solsys.New(
-			float64(winWidth)/2, float64(winHeight)/2,
-			30, 100000)}
-
-	state.solarSystem.SpawnPlanet(100, 30, 1, 10)
+	initState()
 
 	for state.running {
 		gfx.FramerateDelay(&frameRate)
 
 		processInput(&state, sdl.PollEvent())
 		currentTick := sdl.GetTicks()
-		if (currentTick - state.lastUpdateMs) > uint32(state.speedMs) {
-			updateState(&state)
-			state.lastUpdateMs = currentTick
-		}
+		updateState(&state)
+		state.lastUpdateMs = currentTick
 		draw(&state, renderer)
 		renderer.Present()
 	}
