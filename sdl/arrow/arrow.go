@@ -41,3 +41,10 @@ func (a Arrow) leg() line.Line {
 func (a Arrow) legLength() float64 {
 	return (a.width / 2) / math.Cos(math.Pi/6)
 }
+
+func (a Arrow) Draw(r *sdl.Renderer) {
+	lines := a.Lines()
+	for i := range a.Lines() {
+		r.DrawLines([]sdl.Point{lines[i].From, lines[i].To})
+	}
+}

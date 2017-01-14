@@ -59,3 +59,16 @@ func (v *Vec2) RotateAround(around Vec2, angle float64) {
 	v.Y = x*math.Sin(angle) + y*math.Cos(angle)
 	v.Translate(around.X, around.Y)
 }
+
+func (v *Vec2) AngleTo(to Vec2) float64 {
+	v.Translate(-to.X, -to.Y)
+	angle := v.Angle()
+	v.Translate(to.X, to.Y)
+	return angle
+}
+
+func (v *Vec2) DistanceTo(to Vec2) float64 {
+	x := v.X - to.X
+	y := v.Y - to.Y
+	return math.Sqrt(x*x + y*y)
+}
